@@ -1,6 +1,19 @@
 # n8n AI Automation Templates
 
+[![CI](https://github.com/GEV44/n8n-ai-automation-templates/actions/workflows/ci.yml/badge.svg)](https://github.com/GEV44/n8n-ai-automation-templates/actions/workflows/ci.yml)
+![workflows 10](https://img.shields.io/badge/workflows-10-ff6d5a)
+![validator 10/10 valid](https://img.shields.io/badge/validator-10%2F10%20valid-brightgreen)
+![Python 3.11+ for the validator](https://img.shields.io/badge/python-3.11%2B-blue)
+![License MIT](https://img.shields.io/badge/license-MIT-green)
+
+![Grid of the 10 workflows with the business outcome of each](docs/assets/hero.svg)
+
 Ten import-ready n8n workflows that put AI to work in everyday business processes: lead handling, inbox triage, customer chat, bookings, market monitoring, review analysis, real-estate lead matching, a WhatsApp receptionist, short-video content planning and review replies.
+
+## Why this exists
+
+Most n8n templates are demos that break on the first real input. These are small, complete flows with structured LLM output, sheet layouts and tuning notes, built so a business can import one, connect its own accounts and have it working the same day.
+No keys are stored in the repo, and a validator checks every file on each push.
 
 ## Who it is for
 
@@ -21,7 +34,7 @@ Small and mid-size businesses, agencies and founders who want routine work off t
 | 9 | [AI reels content factory](docs/09-ai-reels-content-factory.md) | Trending topics turn into three short-video scripts a day in a content calendar, with a Telegram digest. | `workflows/09-ai-reels-content-factory.json` |
 | 10 | [Review reply and alert](docs/10-review-reply-and-alert.md) | New Google reviews get a drafted reply in their language and negative ones alert you instantly. | `workflows/10-review-reply-and-alert.json` |
 
-## Setup
+## Quickstart (60 seconds)
 
 1. **Import.** In n8n choose Workflows > Import from file and pick a JSON from `workflows/`.
 2. **Credentials.** Create the credentials the workflow uses (OpenAI, Google Sheets, Google Calendar, Gmail, Telegram, plus HTTP header/OAuth2 credentials for WhatsApp, Google reviews and TTS) and select them on each node. Files reference credentials by name only; no keys are stored here.
@@ -29,6 +42,30 @@ Small and mid-size businesses, agencies and founders who want routine work off t
 4. **Activate.** Run once with sample input, check each node, then switch the workflow to Active. Webhook workflows expose their production URL once active.
 
 Each `docs/<name>.md` has the flow diagram, sheet layout and tuning notes for that workflow.
+
+## How a workflow is built
+
+```mermaid
+flowchart LR
+    T[Trigger<br/>webhook, schedule, Telegram, Gmail] --> P[Prepare input<br/>Code / Set node]
+    P --> L[LLM node<br/>structured output schema]
+    L --> R{Route<br/>IF / Switch}
+    R --> S[(Google Sheets<br/>log)]
+    R --> N[Notify<br/>Telegram, Gmail, WhatsApp]
+    R --> H[Human handoff]
+```
+
+Each workflow in `docs/` has its own, more detailed diagram.
+
+## Credentials and placeholders
+
+| Placeholder | Where it is used | What to put there |
+|---|---|---|
+| OpenAI (or any chat model) credential | LLM nodes in all workflows | Your API key, created in n8n |
+| `YOUR_GOOGLE_SHEET_ID` | Google Sheets nodes | ID of your own sheet |
+| `YOUR_TELEGRAM_CHAT_ID` | Telegram alert nodes | Your chat or group ID |
+| Gmail label IDs | Workflow 2 | Labels from your mailbox |
+| HTTP header / OAuth2 credentials | WhatsApp, Google reviews, TTS | Provider tokens, created in n8n |
 
 ## Customization
 

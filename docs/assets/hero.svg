@@ -1,0 +1,86 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 560" width="960" height="560" font-family="Segoe UI, Helvetica, Arial, sans-serif">
+<title>10 import-ready n8n AI workflows and the outcome of each</title>
+<rect width="960" height="560" rx="18" fill="#0f1420"/>
+<text x="40" y="54" font-size="28" font-weight="700" fill="#ffffff">10 n8n workflows, import and run</text>
+<text x="40" y="82" font-size="14" fill="#8fa5bf">AI for leads, inbox, chat, bookings, monitoring, reviews, content</text>
+<rect x="40" y="112" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="40" y="112" width="168" height="5" rx="2" fill="#2aa3ef"/>
+<circle cx="76" cy="162" r="24" fill="#0f1420" stroke="#2aa3ef" stroke-width="2"/>
+<g transform="translate(64,150)"><path d="M4 5h16l-6 8v6l-4-2v-4z" fill="none" stroke="#2aa3ef" stroke-width="2" stroke-linejoin="round"/></g>
+<text x="188" y="146" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">01</text>
+<text x="56" y="212" font-size="14.5" font-weight="700" fill="#ffffff">Lead qualification</text>
+<text x="56" y="238" font-size="12.5" fill="#b4c4dc">Hot leads reach your</text>
+<text x="56" y="257" font-size="12.5" fill="#b4c4dc">phone in seconds</text>
+<rect x="220" y="112" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="220" y="112" width="168" height="5" rx="2" fill="#e0556b"/>
+<circle cx="256" cy="162" r="24" fill="#0f1420" stroke="#e0556b" stroke-width="2"/>
+<g transform="translate(244,150)"><rect x="3" y="6" width="18" height="12" rx="2" fill="none" stroke="#e0556b" stroke-width="2"/><path d="M3 8l9 6 9-6" fill="none" stroke="#e0556b" stroke-width="2"/></g>
+<text x="368" y="146" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">02</text>
+<text x="236" y="212" font-size="14.5" font-weight="700" fill="#ffffff">Gmail triage</text>
+<text x="236" y="238" font-size="12.5" fill="#b4c4dc">Inbox sorts itself,</text>
+<text x="236" y="257" font-size="12.5" fill="#b4c4dc">drafts waiting</text>
+<rect x="400" y="112" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="400" y="112" width="168" height="5" rx="2" fill="#2aa3ef"/>
+<circle cx="436" cy="162" r="24" fill="#0f1420" stroke="#2aa3ef" stroke-width="2"/>
+<g transform="translate(424,150)"><path d="M21 4L3 11l6 2 2 6 3-4 5 4z" fill="none" stroke="#2aa3ef" stroke-width="2" stroke-linejoin="round"/></g>
+<text x="548" y="146" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">03</text>
+<text x="416" y="212" font-size="14.5" font-weight="700" fill="#ffffff">Telegram assistant</text>
+<text x="416" y="238" font-size="12.5" fill="#b4c4dc">FAQ answers, human on</text>
+<text x="416" y="257" font-size="12.5" fill="#b4c4dc">request</text>
+<rect x="580" y="112" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="580" y="112" width="168" height="5" rx="2" fill="#35b27b"/>
+<circle cx="616" cy="162" r="24" fill="#0f1420" stroke="#35b27b" stroke-width="2"/>
+<g transform="translate(604,150)"><rect x="4" y="5" width="16" height="15" rx="2" fill="none" stroke="#35b27b" stroke-width="2"/><path d="M4 10h16M9 15l2 2 4-4" fill="none" stroke="#35b27b" stroke-width="2"/></g>
+<text x="728" y="146" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">04</text>
+<text x="596" y="212" font-size="14.5" font-weight="700" fill="#ffffff">Booking check</text>
+<text x="596" y="238" font-size="12.5" fill="#b4c4dc">Confirmed against your</text>
+<text x="596" y="257" font-size="12.5" fill="#b4c4dc">sheet</text>
+<rect x="760" y="112" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="760" y="112" width="168" height="5" rx="2" fill="#e0a23a"/>
+<circle cx="796" cy="162" r="24" fill="#0f1420" stroke="#e0a23a" stroke-width="2"/>
+<g transform="translate(784,150)"><circle cx="11" cy="11" r="6" fill="none" stroke="#e0a23a" stroke-width="2"/><path d="M16 16l5 5" stroke="#e0a23a" stroke-width="2"/></g>
+<text x="908" y="146" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">05</text>
+<text x="776" y="212" font-size="14.5" font-weight="700" fill="#ffffff">Competitor monitor</text>
+<text x="776" y="238" font-size="12.5" fill="#b4c4dc">One morning digest, no</text>
+<text x="776" y="257" font-size="12.5" fill="#b4c4dc">ten tabs</text>
+<rect x="40" y="322" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="40" y="322" width="168" height="5" rx="2" fill="#9a6be0"/>
+<circle cx="76" cy="372" r="24" fill="#0f1420" stroke="#9a6be0" stroke-width="2"/>
+<g transform="translate(64,360)"><path d="M12 3l2.6 5.5 6 .8-4.4 4.2 1.1 6-5.3-2.9-5.3 2.9 1.1-6L3.4 9.3l6-.8z" fill="none" stroke="#9a6be0" stroke-width="2" stroke-linejoin="round"/></g>
+<text x="188" y="356" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">06</text>
+<text x="56" y="422" font-size="14.5" font-weight="700" fill="#ffffff">Review analyzer</text>
+<text x="56" y="448" font-size="12.5" fill="#b4c4dc">Sentiment and topics,</text>
+<text x="56" y="467" font-size="12.5" fill="#b4c4dc">weekly</text>
+<rect x="220" y="322" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="220" y="322" width="168" height="5" rx="2" fill="#35b27b"/>
+<circle cx="256" cy="372" r="24" fill="#0f1420" stroke="#35b27b" stroke-width="2"/>
+<g transform="translate(244,360)"><path d="M3 11l9-7 9 7v9H3z M9 20v-6h6v6" fill="none" stroke="#35b27b" stroke-width="2" stroke-linejoin="round"/></g>
+<text x="368" y="356" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">07</text>
+<text x="236" y="422" font-size="14.5" font-weight="700" fill="#ffffff">Real estate matcher</text>
+<text x="236" y="448" font-size="12.5" fill="#b4c4dc">Top 3 listings per</text>
+<text x="236" y="467" font-size="12.5" fill="#b4c4dc">buyer request</text>
+<rect x="400" y="322" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="400" y="322" width="168" height="5" rx="2" fill="#25b565"/>
+<circle cx="436" cy="372" r="24" fill="#0f1420" stroke="#25b565" stroke-width="2"/>
+<g transform="translate(424,360)"><path d="M4 20l1.5-4.5A8 8 0 1 1 9 19z" fill="none" stroke="#25b565" stroke-width="2" stroke-linejoin="round"/></g>
+<text x="548" y="356" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">08</text>
+<text x="416" y="422" font-size="14.5" font-weight="700" fill="#ffffff">WhatsApp receptionist</text>
+<text x="416" y="448" font-size="12.5" fill="#b4c4dc">Answers, bookings,</text>
+<text x="416" y="467" font-size="12.5" fill="#b4c4dc">handoff</text>
+<rect x="580" y="322" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="580" y="322" width="168" height="5" rx="2" fill="#e0556b"/>
+<circle cx="616" cy="372" r="24" fill="#0f1420" stroke="#e0556b" stroke-width="2"/>
+<g transform="translate(604,360)"><rect x="3" y="5" width="18" height="14" rx="3" fill="none" stroke="#e0556b" stroke-width="2"/><path d="M10 9l5 3-5 3z" fill="#e0556b"/></g>
+<text x="728" y="356" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">09</text>
+<text x="596" y="422" font-size="14.5" font-weight="700" fill="#ffffff">Reels content factory</text>
+<text x="596" y="448" font-size="12.5" fill="#b4c4dc">3 scripts a day in a</text>
+<text x="596" y="467" font-size="12.5" fill="#b4c4dc">calendar</text>
+<rect x="760" y="322" width="168" height="194" rx="14" fill="#171e2e" stroke="#2a3550" stroke-width="2"/>
+<rect x="760" y="322" width="168" height="5" rx="2" fill="#e0a23a"/>
+<circle cx="796" cy="372" r="24" fill="#0f1420" stroke="#e0a23a" stroke-width="2"/>
+<g transform="translate(784,360)"><path d="M3 5h18v11H9l-5 4z" fill="none" stroke="#e0a23a" stroke-width="2" stroke-linejoin="round"/><path d="M8 10h8" stroke="#e0a23a" stroke-width="2"/></g>
+<text x="908" y="356" font-size="13" font-weight="700" fill="#5d6f8f" text-anchor="end">10</text>
+<text x="776" y="422" font-size="14.5" font-weight="700" fill="#ffffff">Review reply + alert</text>
+<text x="776" y="448" font-size="12.5" fill="#b4c4dc">Drafted replies,</text>
+<text x="776" y="467" font-size="12.5" fill="#b4c4dc">instant alerts</text>
+</svg>
