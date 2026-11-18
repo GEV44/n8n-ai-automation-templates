@@ -1,0 +1,643 @@
+{
+  "name": "08 WhatsApp AI Receptionist - FAQ, Calendar Booking, Human Handoff",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "WhatsApp Cloud API: set the callback URL of the Meta app to this workflow's production webhook path /whatsapp (GET verifies, POST receives) and use the same verify token in WhatsApp Verify Reply. Replace YOUR_PHONE_NUMBER_ID, the knowledge doc URL (plain text, paragraphs separated by blank lines), the calendar and YOUR_STAFF_CHAT_ID. Retrieval is keyword scoring over paragraphs; swap it for a vector store node if the doc is large. Handoff keywords live in Extract Message.",
+        "width": 640,
+        "height": 220
+      },
+      "id": "0fe8194e-5860-5aa2-9632-d388475b8fce",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "whatsapp",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "541e3183-a681-5186-92f2-0ff558b5f0f3",
+      "name": "WhatsApp Verify (GET)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        -120
+      ],
+      "webhookId": "9c6cc9c1-aeac-54f5-a0a5-47226fea5172"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.verify_token'] === 'YOUR_VERIFY_TOKEN' ? $json.query['hub.challenge'] : 'forbidden' }}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "0b7459ce-042f-5b84-8a74-ee860e1c0d64",
+      "name": "WhatsApp Verify Reply",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        240,
+        -120
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "whatsapp",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "859ef810-8a69-56e9-92be-2fbae9345d0b",
+      "name": "WhatsApp Messages (POST)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        100
+      ],
+      "webhookId": "f3dd20ed-182a-52d9-ae86-9d9409a01978"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const v = $json.body?.entry?.[0]?.changes?.[0]?.value;\nconst m = v?.messages?.[0];\nif (!m || m.type !== 'text') return [];\nconst text = m.text.body;\nconst handoff = /(human|agent|manager|person|оператор|человек|менеджер|живой|մարդ|օպերատոր|մենեջեր)/i.test(text);\nconst lang = /[\\u0530-\\u058F]/.test(text) ? 'hy' : /[\\u0400-\\u04FF]/.test(text) ? 'ru' : 'en';\nconst handoffReply = { hy: 'Ձեր հարցը փոխանցեցի աշխատակցին, շուտով կպատասխանի։', ru: 'Передал ваш вопрос сотруднику, он скоро ответит.', en: 'I passed your message to a team member, they will reply shortly.' }[lang];\nreturn [{ json: { from: m.from, name: v.contacts?.[0]?.profile?.name || '', text, handoff, handoff_reply: handoffReply, phone_number_id: v.metadata?.phone_number_id || 'YOUR_PHONE_NUMBER_ID' } }];"
+      },
+      "id": "b1dbdf22-1d2d-5e8c-9217-388d36aab62f",
+      "name": "Extract Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "ca6a4100-ac56-52e9-a614-2572e741e108",
+              "leftValue": "={{ $json.handoff }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c8ef4677-b3f5-5bc5-8c13-41dbc45c20bd",
+      "name": "Handoff Requested?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=WhatsApp handoff\n{{ $json.name }} ({{ $json.from }}): {{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "11b243e1-e939-5c9a-b526-9bb1a1d7dbe5",
+      "name": "Notify Staff",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        -20
+      ],
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Extract Message').item.json.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Message').item.json.from, type: 'text', text: { body: $('Extract Message').item.json.handoff_reply } }) }}",
+        "options": {}
+      },
+      "id": "787e6321-f9fb-587d-8168-3351ef5d30a0",
+      "name": "Send Handoff Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        -20
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "WhatsApp Cloud API token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://example.com/knowledge.txt",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "id": "0d98217a-2a3b-5a70-9bf8-88b04a22c9f5",
+      "name": "Fetch Knowledge Doc",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const q = $('Extract Message').first().json.text;\nconst doc = String($input.first().json.data || '');\nconst tok = s => (String(s).toLowerCase().match(/[\\p{L}\\p{N}]{3,}/gu) || []);\nconst qt = new Set(tok(q));\nconst paras = doc.split(/\\n\\s*\\n/).map(p => p.trim()).filter(Boolean);\nconst top = paras.map(p => ({ p, s: tok(p).filter(t => qt.has(t)).length })).sort((a, b) => b.s - a.s).slice(0, 3).filter(x => x.s > 0).map(x => x.p);\nconst now = new Date().toISOString();\nreturn [{ json: { question: q, context: top.join('\\n\\n') || '(nothing relevant found)', now } }];"
+      },
+      "id": "e8f80f33-ee68-56c2-bb4e-85ab55722578",
+      "name": "Retrieve Context",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.question }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "=You are the WhatsApp receptionist of a business. Reply in the customer's language (Armenian, Russian or English), briefly and politely. Answer ONLY from the knowledge below; if it is not there, say a team member will follow up and never invent prices, hours or policies. Set intent to booking only when the customer asks to book; fill start and end (ISO 8601, 60 minutes by default, current time is {{ $json.now }}) only if both date and time are known, else leave them empty and ask for what is missing in reply. reply is what you send if the slot is free; reply_if_busy is what you send if the slot is taken (offer to pick another time).\n\nKnowledge:\n{{ $json.context }}"
+            }
+          ]
+        },
+        "hasOutputParser": true
+      },
+      "id": "1d0a8ea1-c78b-50dc-8de4-c1213a728409",
+      "name": "Receptionist",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        1200,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "7dae19f0-27c4-5539-87b5-051b9d32baff",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        440
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"intent\": \"faq\",\n  \"language\": \"ru\",\n  \"reply\": \"Мы работаем с 10 до 19.\",\n  \"reply_if_busy\": \"\",\n  \"customer_name\": \"\",\n  \"service\": \"\",\n  \"start\": \"\",\n  \"end\": \"\"\n}"
+      },
+      "id": "abcec4e2-2725-57e1-95f5-8049b13a8394",
+      "name": "Receptionist Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "f5af1462-25c9-5e3b-8d21-2273a97b214c",
+              "leftValue": "={{ $json.output.intent === 'booking' && !!$json.output.start && !!$json.output.end }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c41846c9-6d36-5399-870c-47708e1fd99e",
+      "name": "Ready to Book?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Extract Message').item.json.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Message').item.json.from, type: 'text', text: { body: $('Receptionist').item.json.output.reply } }) }}",
+        "options": {}
+      },
+      "id": "300520d3-8fd9-5022-a1bd-00efd98de1d3",
+      "name": "Send Answer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        340
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "WhatsApp Cloud API token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "calendar",
+        "operation": "availability",
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_CALENDAR_ID",
+          "mode": "id"
+        },
+        "timeMin": "={{ $json.output.start }}",
+        "timeMax": "={{ $json.output.end }}",
+        "options": {}
+      },
+      "id": "b96e1797-cee3-55eb-8559-750d8ec0d136",
+      "name": "Check Slot",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        1680,
+        100
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "3b2bee7e-3713-5c15-a7ee-5848a3dddda6",
+              "leftValue": "={{ $json.available }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "79e9dfa6-7e68-59da-85e3-531c2f9a101a",
+      "name": "Slot Free?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1920,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "event",
+        "operation": "create",
+        "calendar": {
+          "__rl": true,
+          "value": "YOUR_CALENDAR_ID",
+          "mode": "id"
+        },
+        "start": "={{ $('Receptionist').item.json.output.start }}",
+        "end": "={{ $('Receptionist').item.json.output.end }}",
+        "additionalFields": {
+          "summary": "={{ $('Receptionist').item.json.output.service || 'Appointment' }} - {{ $('Receptionist').item.json.output.customer_name || $('Extract Message').item.json.name }}",
+          "description": "=WhatsApp {{ $('Extract Message').item.json.from }}"
+        }
+      },
+      "id": "71cf050c-0bc9-55c3-b80e-0566481ea31a",
+      "name": "Create Event",
+      "type": "n8n-nodes-base.googleCalendar",
+      "typeVersion": 1.3,
+      "position": [
+        2160,
+        0
+      ],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "name": "Google Calendar account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Extract Message').item.json.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Message').item.json.from, type: 'text', text: { body: $('Receptionist').item.json.output.reply } }) }}",
+        "options": {}
+      },
+      "id": "b1bb5d3d-927d-5bec-98f2-1545a5a9d1f4",
+      "name": "Send Confirmation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2400,
+        0
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "WhatsApp Cloud API token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v20.0/{{ $('Extract Message').item.json.phone_number_id }}/messages",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract Message').item.json.from, type: 'text', text: { body: $('Receptionist').item.json.output.reply_if_busy || $('Receptionist').item.json.output.reply } }) }}",
+        "options": {}
+      },
+      "id": "ff93c002-cf8c-57fa-9f91-5c0adc0fe2bd",
+      "name": "Send Busy Reply",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        200
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "name": "WhatsApp Cloud API token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "WhatsApp Verify (GET)": {
+      "main": [
+        [
+          {
+            "node": "WhatsApp Verify Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Messages (POST)": {
+      "main": [
+        [
+          {
+            "node": "Extract Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Message": {
+      "main": [
+        [
+          {
+            "node": "Handoff Requested?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handoff Requested?": {
+      "main": [
+        [
+          {
+            "node": "Notify Staff",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fetch Knowledge Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notify Staff": {
+      "main": [
+        [
+          {
+            "node": "Send Handoff Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Knowledge Doc": {
+      "main": [
+        [
+          {
+            "node": "Retrieve Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retrieve Context": {
+      "main": [
+        [
+          {
+            "node": "Receptionist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Receptionist",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receptionist Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Receptionist",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receptionist": {
+      "main": [
+        [
+          {
+            "node": "Ready to Book?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ready to Book?": {
+      "main": [
+        [
+          {
+            "node": "Check Slot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Slot": {
+      "main": [
+        [
+          {
+            "node": "Slot Free?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Slot Free?": {
+      "main": [
+        [
+          {
+            "node": "Create Event",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Busy Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Event": {
+      "main": [
+        [
+          {
+            "node": "Send Confirmation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

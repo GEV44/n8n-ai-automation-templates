@@ -1,0 +1,620 @@
+{
+  "name": "10 Review Reply and Alert - Sentiment, Drafted Reply, Weekly Summary",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Polls the Google Business Profile reviews endpoint every 30 minutes (replace the URL placeholders with your account and location IDs and use an OAuth2 credential). Only reviews newer than the last run are processed. The LLM tags sentiment and drafts a reply in the review's language; every review is saved to the Reviews sheet (columns: review_id, author, stars, review, sentiment, topic, language, draft_reply, created_at); negatives alert the owner in Telegram at once with the draft. A Monday branch sends the weekly summary.",
+        "width": 620,
+        "height": 230
+      },
+      "id": "5df92e31-8a80-5fd4-bdaf-e850ede3d697",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -320
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 30
+            }
+          ]
+        }
+      },
+      "id": "cc8c0b0e-e61f-5b87-b0fd-35d30d84d7d0",
+      "name": "Poll Every 30 Min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mybusiness.googleapis.com/v4/accounts/YOUR_ACCOUNT_ID/locations/YOUR_LOCATION_ID/reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "oAuth2Api",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "orderBy",
+              "value": "updateTime desc"
+            },
+            {
+              "name": "pageSize",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1bffc938-523f-5882-95f1-ce829f85b3b6",
+      "name": "Fetch Google Reviews",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        240,
+        0
+      ],
+      "credentials": {
+        "oAuth2Api": {
+          "name": "Google Business Profile OAuth2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const store = $getWorkflowStaticData('global');\nconst last = store.lastSeen || '1970-01-01T00:00:00Z';\nconst stars = { ONE: 1, TWO: 2, THREE: 3, FOUR: 4, FIVE: 5 };\nconst fresh = ($input.first().json.reviews || []).filter(r => r.createTime > last).sort((a, b) => a.createTime.localeCompare(b.createTime));\nif (fresh.length) store.lastSeen = fresh[fresh.length - 1].createTime;\nreturn fresh.map(r => ({ json: { review_id: r.reviewId, author: r.reviewer?.displayName || 'Anonymous', stars: stars[r.starRating] || 0, review: r.comment || '', created_at: r.createTime } }));"
+      },
+      "id": "e1233f62-a063-5fe5-93f1-8ee208899675",
+      "name": "Only New Reviews",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Stars: {{ $json.stars }}\nReview: {{ $json.review }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You handle Google reviews for a small business. Return sentiment (positive, neutral or negative; use the star rating as a hint when the text is empty), topic (service, price, quality, delivery, staff or other), language (ISO code of the review text, en if empty) and draft_reply: a short, warm, specific reply of 2 to 4 sentences written in the review's language. For negative reviews apologise sincerely, do not argue or offer refunds, and invite the customer to contact the business directly. Do not invent facts."
+            }
+          ]
+        },
+        "hasOutputParser": true
+      },
+      "id": "fb5ded33-6ea4-54f0-bce2-8f5d214430dd",
+      "name": "Analyse and Draft Reply",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "ec0b281f-4897-5de9-866d-b0a737b38d06",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        220
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"sentiment\": \"negative\",\n  \"topic\": \"delivery\",\n  \"language\": \"ru\",\n  \"draft_reply\": \"Спасибо за отзыв, нам очень жаль, что заказ задержался. Напишите нам, и мы всё исправим.\"\n}"
+      },
+      "id": "69c0e6bf-4638-572c-ad0a-727c5d7c3eb7",
+      "name": "Review Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "881e3bd3-7759-5078-9a49-14d8a11649af",
+              "name": "review_id",
+              "value": "={{ $('Only New Reviews').item.json.review_id }}",
+              "type": "string"
+            },
+            {
+              "id": "8b79d83a-cffd-5d42-bb3c-592962ec7406",
+              "name": "author",
+              "value": "={{ $('Only New Reviews').item.json.author }}",
+              "type": "string"
+            },
+            {
+              "id": "268931bb-f8e6-5ddf-8869-939415b242e2",
+              "name": "stars",
+              "value": "={{ $('Only New Reviews').item.json.stars }}",
+              "type": "string"
+            },
+            {
+              "id": "f49ac58b-5010-5722-917e-fd58c3509794",
+              "name": "review",
+              "value": "={{ $('Only New Reviews').item.json.review }}",
+              "type": "string"
+            },
+            {
+              "id": "19811140-ab20-511e-9fa5-4226ed3d105c",
+              "name": "created_at",
+              "value": "={{ $('Only New Reviews').item.json.created_at }}",
+              "type": "string"
+            },
+            {
+              "id": "87b7440b-f7ae-5ca2-872a-feaf73d54634",
+              "name": "sentiment",
+              "value": "={{ $json.output.sentiment }}",
+              "type": "string"
+            },
+            {
+              "id": "04923614-ecec-57b8-8569-e8e8aae1adeb",
+              "name": "topic",
+              "value": "={{ $json.output.topic }}",
+              "type": "string"
+            },
+            {
+              "id": "b3f24613-8c61-57cd-bb56-9412f8818d3e",
+              "name": "language",
+              "value": "={{ $json.output.language }}",
+              "type": "string"
+            },
+            {
+              "id": "6bf62aa2-23d1-580e-b0ad-cc4bdb21b981",
+              "name": "draft_reply",
+              "value": "={{ $json.output.draft_reply }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "42e40f11-60ed-59b2-a4ea-c5329d8c4989",
+      "name": "Build Review Row",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        960,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Reviews",
+          "mode": "name"
+        },
+        "options": {},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "review_id": "={{ $json.review_id }}",
+            "author": "={{ $json.author }}",
+            "stars": "={{ $json.stars }}",
+            "review": "={{ $json.review }}",
+            "sentiment": "={{ $json.sentiment }}",
+            "topic": "={{ $json.topic }}",
+            "language": "={{ $json.language }}",
+            "draft_reply": "={{ $json.draft_reply }}",
+            "created_at": "={{ $json.created_at }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "id": "d95ed45f-4c60-5bfb-b759-1096d00ee73a",
+      "name": "Save Review",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        0
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": false,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "2f1b2a34-eb26-5638-a9e9-267a7ebc6dad",
+              "leftValue": "={{ $('Build Review Row').item.json.sentiment }}",
+              "rightValue": "negative",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "02ad34b9-87ab-5d2d-b282-3f1acd1c4f0d",
+      "name": "Negative Review?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1440,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=Negative review ({{ $('Build Review Row').item.json.stars }} stars)\n{{ $('Build Review Row').item.json.author }}: {{ $('Build Review Row').item.json.review }}\n\nDraft reply ({{ $('Build Review Row').item.json.language }}):\n{{ $('Build Review Row').item.json.draft_reply }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "773d41c8-d6c6-5abb-8d00-9be7d44eac75",
+      "name": "Telegram Negative Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        0
+      ],
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "weeks",
+              "weeksInterval": 1,
+              "triggerAtDay": [
+                1
+              ],
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "id": "85e81394-116c-508b-8864-ab64f3fe4796",
+      "name": "Every Monday",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Reviews",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "550b2802-e2a1-53fe-843e-8c6de9319740",
+      "name": "Read Reviews",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        240,
+        420
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const since = Date.now() - 7 * 24 * 3600 * 1000;\nconst rows = $input.all().map(i => i.json).filter(r => new Date(r.created_at).getTime() >= since);\nconst count = (key) => rows.reduce((a, r) => { a[r[key]] = (a[r[key]] || 0) + 1; return a; }, {});\nconst avg = rows.length ? rows.reduce((s, r) => s + Number(r.stars || 0), 0) / rows.length : 0;\nreturn [{ json: { total: rows.length, avg_stars: Math.round(avg * 10) / 10, sentiment: count('sentiment'), topics: count('topic'), negatives: rows.filter(r => r.sentiment === 'negative').slice(0, 8).map(r => r.review) } }];"
+      },
+      "id": "6c691cdf-e295-522f-8b72-0206944962bd",
+      "name": "Aggregate Last 7 Days",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ JSON.stringify($json) }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You write a weekly Google-review summary for a business owner from aggregated stats. Give: average rating and review count, overall mood in one line, top 2 complaints, top 2 praised things and 2 concrete actions for next week. Max 900 characters, plain text, in English."
+            }
+          ]
+        }
+      },
+      "id": "dab61ecc-0352-59af-b053-5674e8a50c17",
+      "name": "Write Weekly Summary",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        720,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "8b3cd70a-16d5-5e49-8458-1108d539ea03",
+      "name": "OpenAI Chat Model (Weekly)",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        640
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "=Weekly review summary\n\n{{ $json.text }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "bd60f6b3-5e4e-599f-9384-98f6cae51847",
+      "name": "Send Weekly Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        980,
+        420
+      ],
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Poll Every 30 Min": {
+      "main": [
+        [
+          {
+            "node": "Fetch Google Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch Google Reviews": {
+      "main": [
+        [
+          {
+            "node": "Only New Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Only New Reviews": {
+      "main": [
+        [
+          {
+            "node": "Analyse and Draft Reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyse and Draft Reply": {
+      "main": [
+        [
+          {
+            "node": "Build Review Row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Review Row": {
+      "main": [
+        [
+          {
+            "node": "Save Review",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Review": {
+      "main": [
+        [
+          {
+            "node": "Negative Review?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Negative Review?": {
+      "main": [
+        [
+          {
+            "node": "Telegram Negative Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Every Monday": {
+      "main": [
+        [
+          {
+            "node": "Read Reviews",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Reviews": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Last 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Last 7 Days": {
+      "main": [
+        [
+          {
+            "node": "Write Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Write Weekly Summary": {
+      "main": [
+        [
+          {
+            "node": "Send Weekly Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analyse and Draft Reply",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Analyse and Draft Reply",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model (Weekly)": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Write Weekly Summary",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

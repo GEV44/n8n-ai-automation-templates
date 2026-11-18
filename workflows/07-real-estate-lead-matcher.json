@@ -1,0 +1,380 @@
+{
+  "name": "07 Real Estate Lead Matcher - Free-Text Request to Top 3 Listings",
+  "nodes": [
+    {
+      "parameters": {
+        "content": "Two entry points: POST /buyer-request (body: {text, contact}) or a new row in the Requests tab (columns: request, contact). An LLM extracts deal, rooms, budget, currency, district, move_in, pets from RU/HY/EN text. Listings tab columns: id, deal, rooms, price, currency, district, address, owner_type (owner|agency), pets_allowed, url. Matches need the same deal, rooms and district and a price within 10% of the budget; owners rank before agencies. The agent gets a Telegram card with the top 3 and the result is logged to Matches. Set sheet IDs, credentials and chat ID.",
+        "width": 640,
+        "height": 230
+      },
+      "id": "73ba7ffd-2096-53dd-8933-f77b16f75fe4",
+      "name": "Setup Notes",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -200,
+        -300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "buyer-request",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "id": "77221487-8fa6-52a2-ac4f-039361fd7f08",
+      "name": "Buyer Request Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        0
+      ],
+      "webhookId": "bc1878f3-4e6e-5696-bb3c-bc9d4ae2d01c"
+    },
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Requests",
+          "mode": "name"
+        },
+        "event": "rowAdded",
+        "options": {}
+      },
+      "id": "5709650c-4d16-5e56-9aed-1b41b0815090",
+      "name": "New Request Row",
+      "type": "n8n-nodes-base.googleSheetsTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        220
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "1442f8d7-0bbd-51d6-aa94-d9b3911e5cc6",
+              "name": "request",
+              "value": "={{ $json.body ? $json.body.text : $json.request }}",
+              "type": "string"
+            },
+            {
+              "id": "1af81a7e-dccb-563a-8ac6-6107160321f0",
+              "name": "contact",
+              "value": "={{ $json.body ? $json.body.contact : $json.contact }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "6682a1d5-b736-5865-9e36-ad4c1d518c36",
+      "name": "Normalize Request",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        240,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.request }}",
+        "messages": {
+          "messageValues": [
+            {
+              "message": "You extract a property search request written in Russian, Armenian or English. Return deal (rent or buy), rooms (number, 0 if unknown), budget (number, 0 if unknown), currency (USD, AMD, EUR or RUB), district (Yerevan district in English, e.g. Kentron, Arabkir, Davtashen; empty if unknown), move_in (ISO date or empty) and pets (true or false). Never guess; use the empty value when the text does not say."
+            }
+          ]
+        },
+        "hasOutputParser": true
+      },
+      "id": "caaa2ee7-b848-5632-a454-be9048540e9f",
+      "name": "Extract Requirements",
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.5,
+      "position": [
+        480,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list"
+        },
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "id": "1262fef4-a950-545f-b68d-8dbc14ea6c6c",
+      "name": "OpenAI Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        480,
+        320
+      ],
+      "credentials": {
+        "openAiApi": {
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "fromJson",
+        "jsonSchemaExample": "{\n  \"deal\": \"rent\",\n  \"rooms\": 2,\n  \"budget\": 450,\n  \"currency\": \"USD\",\n  \"district\": \"Kentron\",\n  \"move_in\": \"2026-12-01\",\n  \"pets\": true\n}"
+      },
+      "id": "223dd7e2-8b15-5380-9c7c-aec3161abe38",
+      "name": "Request Schema",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.2,
+      "position": [
+        680,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "read",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Listings",
+          "mode": "name"
+        },
+        "options": {}
+      },
+      "id": "261b984f-eb24-5b1b-ad99-9cfb222a0bb4",
+      "name": "Read Listings",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      },
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "const req = $('Extract Requirements').first().json.output;\nconst src = $('Normalize Request').first().json;\nconst listings = $input.all().map(i => i.json).filter(l => l.id);\nconst norm = s => String(s || '').trim().toLowerCase();\nconst deal = norm(req.deal) === 'buy' ? 'buy' : 'rent';\nconst budget = Number(req.budget) || 0;\nconst scored = listings.filter(l => {\n  const price = Number(l.price);\n  if (norm(l.deal) !== deal) return false;\n  if (req.rooms && Number(l.rooms) !== Number(req.rooms)) return false;\n  if (req.district && norm(l.district) !== norm(req.district)) return false;\n  if (budget && norm(l.currency) !== norm(req.currency)) return false;\n  if (budget && Math.abs(price - budget) / budget > 0.10) return false;\n  if (req.pets && norm(l.pets_allowed) === 'no') return false;\n  return true;\n}).map(l => ({ ...l, diff: budget ? Math.abs(Number(l.price) - budget) / budget : 0, owner: norm(l.owner_type) === 'owner' }))\n  .sort((a, b) => (b.owner - a.owner) || (a.diff - b.diff)).slice(0, 3);\nconst icon = l => (l.owner ? 'OWNER' : 'AGENCY');\nconst lines = scored.map((l, i) => `${i + 1}. ${l.address || l.district}, ${l.rooms} rooms, ${l.price} ${l.currency} [${icon(l)}]${l.url ? '\\n   ' + l.url : ''}`);\nconst card = `New buyer request\\n${src.contact || 'no contact'}\\n${req.deal} | ${req.rooms || '?'} rooms | ${req.budget || '?'} ${req.currency || ''} | ${req.district || 'any district'} | move-in ${req.move_in || '?'} | pets ${req.pets ? 'yes' : 'no'}\\n\\n` + (lines.length ? 'Top matches:\\n' + lines.join('\\n') : 'No listing within 10% of the budget in this district.');\nreturn [{ json: { card, request: src.request, contact: src.contact || '', criteria: JSON.stringify(req), match_count: scored.length, match_ids: scored.map(l => l.id).join(',') } }];"
+      },
+      "id": "10c3a543-e6b4-53e6-a90c-f9c18ef3230f",
+      "name": "Match Listings",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "YOUR_TELEGRAM_CHAT_ID",
+        "text": "={{ $json.card }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "id": "3ed675fd-fec0-53b7-9419-184f62afb388",
+      "name": "Send Agent Card",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "name": "Telegram bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_GOOGLE_SHEET_ID",
+          "mode": "id"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Matches",
+          "mode": "name"
+        },
+        "options": {},
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "request": "={{ $('Match Listings').item.json.request }}",
+            "contact": "={{ $('Match Listings').item.json.contact }}",
+            "criteria": "={{ $('Match Listings').item.json.criteria }}",
+            "match_count": "={{ $('Match Listings').item.json.match_count }}",
+            "match_ids": "={{ $('Match Listings').item.json.match_ids }}",
+            "matched_at": "={{ $now.toISO() }}"
+          },
+          "matchingColumns": [],
+          "schema": []
+        }
+      },
+      "id": "72872244-a406-5ae6-8c35-048aa75b400d",
+      "name": "Log Result",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [
+        1440,
+        100
+      ],
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Buyer Request Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "New Request Row": {
+      "main": [
+        [
+          {
+            "node": "Normalize Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Request": {
+      "main": [
+        [
+          {
+            "node": "Extract Requirements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Requirements": {
+      "main": [
+        [
+          {
+            "node": "Read Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Listings": {
+      "main": [
+        [
+          {
+            "node": "Match Listings",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Listings": {
+      "main": [
+        [
+          {
+            "node": "Send Agent Card",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Agent Card": {
+      "main": [
+        [
+          {
+            "node": "Log Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Extract Requirements",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Request Schema": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Extract Requirements",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

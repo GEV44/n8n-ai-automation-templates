@@ -10,7 +10,7 @@ ALLOWED_TYPES = {
     "n8n-nodes-base.googleSheets", "n8n-nodes-base.googleSheetsTrigger", "n8n-nodes-base.httpRequest",
     "n8n-nodes-base.if", "n8n-nodes-base.switch", "n8n-nodes-base.set", "n8n-nodes-base.code",
     "n8n-nodes-base.scheduleTrigger", "n8n-nodes-base.rssFeedRead", "n8n-nodes-base.merge",
-    "n8n-nodes-base.stickyNote",
+    "n8n-nodes-base.stickyNote", "n8n-nodes-base.googleCalendar",
     "@n8n/n8n-nodes-langchain.agent", "@n8n/n8n-nodes-langchain.lmChatOpenAi",
     "@n8n/n8n-nodes-langchain.chainLlm", "@n8n/n8n-nodes-langchain.memoryBufferWindow",
     "@n8n/n8n-nodes-langchain.outputParserStructured",
